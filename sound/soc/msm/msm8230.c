@@ -216,6 +216,7 @@ static void external_speaker_amp_work(struct work_struct *work)
 		pr_debug("%s :: Ext Speaker Amp enable but msm8930_ext_spk_pamp is already 0\n", __func__);
 	else {
 #ifdef CONFIG_EXT_SPK_AMP
+		pr_info("%s: turning on external Speaker Amp (gpio %d)\n", __func__, GPIO_SPK_AMP_EN);
 		gpio_direction_output(GPIO_SPK_AMP_EN, 1);
 #else
 		pm8xxx_spk_enable(MSM8930_SPK_ON);
@@ -236,7 +237,7 @@ static void msm8930_ext_control(struct snd_soc_codec *codec)
 	pr_debug("%s: msm8930_spk_control = %d", __func__, msm8930_spk_control);
 	if (msm8930_spk_control == MSM8930_SPK_ON) {
 		snd_soc_dapm_enable_pin(dapm, "Ext Spk Left Pos");
-		snd_soc_dapm_enable_pin(dapm, "Ext Spk left Neg");
+		snd_soc_dapm_enable_pin(dapm, "Ext Spk Left Neg");
 	} else {
 		snd_soc_dapm_disable_pin(dapm, "Ext Spk Left Pos");
 		snd_soc_dapm_disable_pin(dapm, "Ext Spk Left Neg");
@@ -305,25 +306,14 @@ static void msm8930_ext_spk_power_amp_on(u32 spk)
 {
 	if (spk & (SPK_AMP_POS | SPK_AMP_NEG)) {
 
-#if defined (CONFIG_MACH_LT02)
-		if (msm8930_ext_spk_pamp & SPK_AMP_POS) {
-#else
-		if ((msm8930_ext_spk_pamp & SPK_AMP_POS)&&
-			(msm8930_ext_spk_pamp & SPK_AMP_NEG)) {
-#endif
-
+		if (msm8930_ext_spk_pamp & (SPK_AMP_POS | SPK_AMP_NEG)) {
 			pr_debug("%s Speaker Amp already turned on. spk = 0x%08x\n",
 					__func__, spk);
 			return;
 		}
 
 		msm8930_ext_spk_pamp |= spk;
-#if defined (CONFIG_MACH_LT02)
-		if (msm8930_ext_spk_pamp & SPK_AMP_POS) {
-#else
-		if ((msm8930_ext_spk_pamp & SPK_AMP_POS) &&
-			(msm8930_ext_spk_pamp & SPK_AMP_NEG)) {
-#endif
+		if (msm8930_ext_spk_pamp & (SPK_AMP_POS | SPK_AMP_NEG)) {
 			/* Delaying the amp power_on to remove the static noise
 			during SPK_PA enable */
 			schedule_delayed_work(
@@ -345,6 +335,7 @@ static void msm8930_ext_spk_power_amp_off(u32 spk)
 		if (!msm8930_ext_spk_pamp)
 			return;
 #ifdef CONFIG_EXT_SPK_AMP
+		pr_info("%s: turning off external Speaker Amp (gpio %d)\n", __func__, GPIO_SPK_AMP_EN);
 		gpio_direction_output(GPIO_SPK_AMP_EN, 0);
 #else
 		pm8xxx_spk_enable(MSM8930_SPK_OFF);
